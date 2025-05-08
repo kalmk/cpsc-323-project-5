@@ -2,7 +2,7 @@ from code_generator import CodeGenerator
 
 def main():
     # Set test case path
-    input_path = 'testCase1.txt'
+    input_path = 'testCase2.txt'
     # Create output path for .asm file
     output_path = 'output.asm'
 
@@ -12,7 +12,7 @@ def main():
 
     # Generate MIPS code
     cg = CodeGenerator()
-    asm_code = cg.generate(tac)
+    asm_code = cg.translate_program(tac)
 
     # Write to .asm file
     with open(output_path, 'w') as out:

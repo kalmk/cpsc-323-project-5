@@ -27,10 +27,18 @@ class CodeGenerator:
                 self.next_reg += 1
         return self.var_reg[var]
 
-    def generate(self, tac_lines):
+    def translate_program(self, tac_lines):
         """
-        Working under the assumtion that we should read in the test cases verbatim, 
-        we are using re.match to strip the (#'s) from the input
+        This function:
+        1. Loops over each input line, strips (#'s) (assuming we use the test cases as given)
+        2. Skip any non-conforming lines using a regex
+        3. Extract the captured groups
+        4. Build a map from TAC lables to MIPS labes
+        5. Save the cleaned-up instruction
+        6. Add the prologue for the .asm file
+        8. Loop over parsed instructions
+        9. Emit the MIPS label
+        10. Generate and append the instruction translations
 
         """
         # parse labels
@@ -57,13 +65,13 @@ class CodeGenerator:
         # translate
         for label, tac_instruc in instrs:
             code.append(f"{label_map[label]}:")
-            code.extend(self._gen_instr(tac_instruc, label_map))
+            code.extend(self.emit_instruction(tac_instruc, label_map))
 
         # epilogue
         code.append("  jr $ra")
         return "\n".join(code)
 
-    def _gen_instr(self, tac_instruc, label_map):
+    def emit_instruction(self, tac_instruc, label_map):
         out = []
         # return
         if tac_instruc == 'return':
