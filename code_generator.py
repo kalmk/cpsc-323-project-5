@@ -1,3 +1,4 @@
+# Import regular expression module. Using it to parse each TAC line with re.match
 import re
 
 class CodeGenerator:
@@ -33,12 +34,12 @@ class CodeGenerator:
         instrs = []
         label_map = {}
         for line in tac_lines:
-            m = re.match(r"\(?([0-9]+)\)?\s*(.*)", line)
-            if not m:
+            match = re.match(r"\(?([0-9]+)\)?\s*(.*)", line)
+            if not match:
                 continue
-            lbl, body = m.groups()
-            label_map[lbl] = f"L{lbl}"
-            instrs.append((lbl, body.strip()))
+            label, body = match.groups()
+            label_map[label] = f"L{label}"
+            instrs.append((label, body.strip()))
 
         # prologue
         code = [
@@ -50,28 +51,28 @@ class CodeGenerator:
         ]
 
         # translate
-        for lbl, instr in instrs:
-            code.append(f"{label_map[lbl]}:")
-            code.extend(self._gen_instr(instr, label_map))
+        for label, tac_instruc in instrs:
+            code.append(f"{label_map[label]}:")
+            code.extend(self._gen_instr(tac_instruc, label_map))
 
         # epilogue
         code.append("  jr $ra")
         return "\n".join(code)
 
-    def _gen_instr(self, instr, label_map):
+    def _gen_instr(self, tac_instruc, label_map):
         out = []
         # return
-        if instr == 'return':
+        if tac_instruc == 'return':
             return ["  jr $ra"]
 
         # conditional branch
-        if instr.startswith('if '):
-            m = re.match(
+        if tac_instruc.startswith('if '):
+            match = re.match(
                 r"if\s+(\w+)\s*(<=|>=|==|!=|<|>)\s*(\w+)\s*then\s*goto\s*\(?([0-9]+)\)?",
-                instr
+                tac_instruc
             )
-            if m:
-                a, op, b, tgt = m.groups()
+            if match:
+                a, op, b, tgt = match.groups()
                 ra, rb = self.get_reg(a), self.get_reg(b)
                 label = label_map[tgt]
                 op_map = {'<=':'ble','>=':'bge','==':'beq','!=':'bne','<':'blt','>':'bgt'}
@@ -79,16 +80,16 @@ class CodeGenerator:
                 return out
 
         # unconditional jump
-        if instr.startswith('goto'):
-            m = re.match(r"goto\s*\(?([0-9]+)\)?", instr)
-            if m:
-                out.append(f"  j {label_map[m.group(1)]}")
+        if tac_instruc.startswith('goto'):
+            match = re.match(r"goto\s*\(?([0-9]+)\)?", tac_instruc)
+            if match:
+                out.append(f"  j {label_map[match.group(1)]}")
             return out
 
         # load/store
-        if '=' in instr:
+        if '=' in tac_instruc:
             # array load: dst = arr[idx]
-            m1 = re.match(r"(\w+)\s*=\s*(\w+)\[(\w+)\]", instr)
+            m1 = re.match(r"(\w+)\s*=\s*(\w+)\[(\w+)\]", tac_instruc)
             if m1:
                 dst, arr, idx = m1.groups()
                 out.append(f"  add $at, {self.get_reg(arr)}, {self.get_reg(idx)}")
@@ -96,7 +97,7 @@ class CodeGenerator:
                 return out
 
             # array store: arr[idx] = src
-            m2 = re.match(r"(\w+)\[(\w+)\]\s*=\s*(\w+)", instr)
+            m2 = re.match(r"(\w+)\[(\w+)\]\s*=\s*(\w+)", tac_instruc)
             if m2:
                 arr, idx, src = m2.groups()
                 out.append(f"  add $at, {self.get_reg(arr)}, {self.get_reg(idx)}")
@@ -104,7 +105,7 @@ class CodeGenerator:
                 return out
 
             # simple copy or binary op
-            lhs, rhs = [s.strip() for s in instr.split('=',1)]
+            lhs, rhs = [s.strip() for s in tac_instruc.split('=',1)]
             toks = rhs.split()
 
             # copy: lhs = rhs
