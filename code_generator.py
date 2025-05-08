@@ -23,8 +23,6 @@ class CodeGenerator:
             if var == 'x':
                 self.var_reg[var] = '$s0'  # base address for array x
             else:
-                if self.next_reg >= len(self.reg_pool):
-                    raise RuntimeError("Out of registers: extend pool or implement spilling")
                 self.var_reg[var] = self.reg_pool[self.next_reg]
                 self.next_reg += 1
         return self.var_reg[var]
@@ -41,7 +39,7 @@ class CodeGenerator:
             label_map[label] = f"L{label}"
             instrs.append((label, body.strip()))
 
-        # prologue
+        # prologue for .asm file
         code = [
             ".data",
             "  x: .space 400",
