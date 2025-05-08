@@ -1,7 +1,7 @@
 from code_generator import CodeGenerator
 
 def main():
-    # Read TAC instructions from external file 'tac_input.txt'
+    # Read TAC instructions from external file 'testCase1.txt'
     with open('testCase1.txt') as f:
         tac = [line.strip() for line in f if line.strip()]
 
