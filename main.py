@@ -1,10 +1,10 @@
-import sys
 from code_generator import CodeGenerator
 
 def main():
-    # Input and output paths
-    input_path = sys.argv[1] if len(sys.argv) > 1 else 'testCase1.txt'
-    output_path = sys.argv[2] if len(sys.argv) > 2 else 'output.asm'
+    # Set test case path
+    input_path = 'testCase1.txt'
+    # Create output path for .asm file
+    output_path = 'output.asm'
 
     # Read TAC lines
     with open(input_path) as f:
