@@ -87,6 +87,7 @@ class CodeGenerator:
         # load/store
         if '=' in tac_instruc:
             # array load: dst = arr[idx]
+            # m# vars stores the result of re.match
             m1 = re.match(r"(\w+)\s*=\s*(\w+)\[(\w+)\]", tac_instruc)
             if m1:
                 dst, arr, idx = m1.groups()
