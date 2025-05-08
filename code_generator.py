@@ -28,10 +28,16 @@ class CodeGenerator:
         return self.var_reg[var]
 
     def generate(self, tac_lines):
+        """
+        Working under the assumtion that we should read in the test cases verbatim, 
+        we are using re.match to strip the (#'s) from the input
+
+        """
         # parse labels
         instrs = []
         label_map = {}
         for line in tac_lines:
+            # Strip (#'s) from input using regex
             match = re.match(r"\(?([0-9]+)\)?\s*(.*)", line)
             if not match:
                 continue
