@@ -1,32 +1,32 @@
-(1) i = n
-(2) if i < 2 then goto (32)
-(3) jmax = 1
-(4) j = 2
-(5) if j > 1 then goto (16)
-(6) T1 = j - 1
-(7) T2 = T1 * 4
-(8) T3 = x[T2]
-(9) T4 = jmax - 1
-(10) T5 = T4 * 4
-(11) T6 = x[T5]
-(12) if T3 <= T6 then goto (14)
-(13) jmax = j
-(14) j = j + 1
-(15) goto (5)
-(16) if jmax = i then goto (30)
-(17) T7 = i - 1
-(18) T8 = T7 * 4
-(19) T9 = x[T8]
-(20) temp = T9
-(21) T10 = jmax - 1
-(22) T11 = T10 * 4
-(23) T12 = x[T11]
-(24) T13 = i - 1
-(25) T14 = T13 * 4
-(26) x[T14] = T12
-(27) T15 = jmax - 1
-(28) T16 = T15 * 4
-(29) x[T16] = temp
-(30) i = i - 1
-(31) goto (2)
-(32) return
+ i = n
+ if i < 2 then goto 32
+ jmax = 1
+ j = 2
+ if j > 1 then goto 16
+ T1 = j - 1
+ T2 = T1 * 4
+ T3 = x[T2]
+ T4 = jmax - 1
+ T5 = T4 * 4
+ T6 = x[T5]
+ if T3 <= T6 then goto 14
+ jmax = j
+ j = j + 1
+ goto 5
+ if jmax = i then goto 30
+ T7 = i - 1
+ T8 = T7 * 4
+ T9 = x[T8]
+ temp = T9
+ T10 = jmax - 1
+ T11 = T10 * 4
+ T12 = x[T11]
+ T13 = i - 1
+ T14 = T13 * 4
+ x[T14] = T12
+ T15 = jmax - 1
+ T16 = T15 * 4
+ x[T16] = temp
+ i = i - 1
+ goto 2
+ return
