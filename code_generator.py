@@ -94,12 +94,12 @@ class CodeGenerator:
                 out.append(f"  lw {self.get_reg(dst)}, 0($at)")
                 return out
 
-            # array store: arr[idx] = src
+            # array store: arr[idx] = source
             m2 = re.match(r"(\w+)\[(\w+)\]\s*=\s*(\w+)", tac_instruc)
             if m2:
-                arr, idx, src = m2.groups()
+                arr, idx, source = m2.groups()
                 out.append(f"  add $at, {self.get_reg(arr)}, {self.get_reg(idx)}")
-                out.append(f"  sw {self.get_reg(src)}, 0($at)")
+                out.append(f"  sw {self.get_reg(source)}, 0($at)")
                 return out
 
             # simple copy or binary op
@@ -108,24 +108,24 @@ class CodeGenerator:
 
             # copy: lhs = rhs
             if len(toks) == 1:
-                src = toks[0]
-                rd = self.get_reg(lhs)
-                if src.isdigit():
-                    out.append(f"  li {rd}, {src}")
+                source = toks[0]
+                destination_register = self.get_reg(lhs)
+                if source.isdigit():
+                    out.append(f"  li {destination_register}, {source}")
                 else:
-                    out.append(f"  move {rd}, {self.get_reg(src)}")
+                    out.append(f"  move {destination_register}, {self.get_reg(source)}")
                 return out
 
             # binary operation: lhs = op1 op op2
             if len(toks) == 3:
                 op1, op, op2 = toks
-                rd = self.get_reg(lhs)
+                destination_register = self.get_reg(lhs)
                 r1 = self.get_reg(op1)
 
                 # immediate add/sub
                 if op2.isdigit() and op in ['+','-']:
                     imm = op2 if op == '+' else f"-{op2}"
-                    out.append(f"  addi {rd}, {r1}, {imm}")
+                    out.append(f"  addi {destination_register}, {r1}, {imm}")
                 else:
                     # load op2 into register or $at
                     if op2.isdigit():
@@ -135,12 +135,12 @@ class CodeGenerator:
                         r2 = self.get_reg(op2)
 
                     # emit binary instruction
-                    if op == '+':      out.append(f"  add {rd}, {r1}, {r2}")
-                    elif op == '-':    out.append(f"  sub {rd}, {r1}, {r2}")
-                    elif op == '*':    out.append(f"  mul {rd}, {r1}, {r2}")
+                    if op == '+':      out.append(f"  add {destination_register}, {r1}, {r2}")
+                    elif op == '-':    out.append(f"  sub {destination_register}, {r1}, {r2}")
+                    elif op == '*':    out.append(f"  mul {destination_register}, {r1}, {r2}")
                     elif op == '/':    
                         out.append(f"  div {r1}, {r2}")
-                        out.append(f"  mflo {rd}")
+                        out.append(f"  mflo {destination_register}")
 
                 return out
 
