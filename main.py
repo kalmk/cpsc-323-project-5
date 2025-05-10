@@ -1,24 +1,20 @@
 from code_generator import CodeGenerator
 
 def main():
-    # Set test case path
-    input_path = 'testCase2.txt'
-    # Create output path for .asm file
-    output_path = 'output.asm'
-
-    # Read TAC lines
+    input_path = "test_cases/testCase1.txt"
+    output_path = "output.asm"
+    # Read TAC instructions from external file 'testCase1.txt'
     with open(input_path) as f:
-        tac = [ln.strip() for ln in f if ln.strip()]
+        tac = [line.strip() for line in f if line.strip()]
 
-    # Generate MIPS code
     cg = CodeGenerator()
-    asm_code = cg.translate_program(tac)
+    asm = cg.generate(tac)
 
-    # Write to .asm file
+    # Write the generated MIPS to 'output.asm'
     with open(output_path, 'w') as out:
-        out.write(asm_code)
+        out.write(asm)
 
-    print(f"MIPS assembly written to {output_path}")
+    print("MIPS assembly written to output.asm")
 
 if __name__ == '__main__':
     main()

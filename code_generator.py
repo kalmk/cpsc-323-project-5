@@ -1,162 +1,134 @@
-# Import regular expression module. Using it to parse each TAC line with re.match
+# Importing regex module's re.match function
 import re
 
 class CodeGenerator:
     def __init__(self):
-        # mapping variable/temporary name to MIPS register
-        self.var_reg = {}
-        # pool of general-purpose registers (avoid spills):
-        # $t0-$t9, $s1-$s7 (reserve $s0), $a0-$a3, $v0-$v1
-        self.reg_pool = [
+        # map symbol names to MIPS registers
+        self.register_map = {}
+        # reserve $s0 for array base 'x', then general-purpose registers
+        self.register_pool = [
             '$t0','$t1','$t2','$t3','$t4','$t5','$t6','$t7','$t8','$t9',
             '$s1','$s2','$s3','$s4','$s5','$s6','$s7',
             '$a0','$a1','$a2','$a3','$v0','$v1'
         ]
-        self.next_reg = 0
+        self.next_register = 0
 
-    def get_reg(self, var):
-        # numeric constant: return directly
-        if var.isdigit():
-            return var
-        # allocate on first use
-        if var not in self.var_reg:
-            if var == 'x':
-                self.var_reg[var] = '$s0'  # base address for array x
+    def get_register(self, symbol):
+        # immediate constants stay as literals
+        if symbol.isdigit():
+            return symbol
+        # allocate a register if first seen
+        if symbol not in self.register_map:
+            if symbol == 'x':
+                self.register_map[symbol] = '$s0'
             else:
-                self.var_reg[var] = self.reg_pool[self.next_reg]
-                self.next_reg += 1
-        return self.var_reg[var]
+                if self.next_register >= len(self.register_pool):
+                    raise RuntimeError('Out of registers')
+                self.register_map[symbol] = self.register_pool[self.next_register]
+                self.next_register += 1
+        return self.register_map[symbol]
 
-    def translate_program(self, tac_lines):
-        """
-        This function:
-        1. Loops over each input line, strips (#'s) (assuming we use the test cases as given)
-        2. Skip any non-conforming lines using a regex
-        3. Extract the captured groups
-        4. Build a map from TAC lables to MIPS labes
-        5. Save the cleaned-up instruction
-        6. Add the prologue for the .asm file
-        8. Loop over parsed instructions
-        9. Emit the MIPS label
-        10. Generate and append the instruction translations
+    def generate(self, tac_lines_list):
+        # tac_lines_list is a Python list of TAC instructions in order
+        numbered_instructions = list(enumerate(tac_lines_list, start=1))
+        label_map = {index: f'L{index}' for index, _ in numbered_instructions}
 
-        """
-        # parse labels
-        instrs = []
-        label_map = {}
-        for line in tac_lines:
-            # Strip (#'s) from input using regex
-            match = re.match(r"\(?([0-9]+)\)?\s*(.*)", line)
-            if not match:
-                continue
-            label, body = match.groups()
-            label_map[label] = f"L{label}"
-            instrs.append((label, body.strip()))
-
-        # prologue for .asm file
-        code = [
-            ".data",
-            "  x: .space 400",
-            ".text",
-            ".globl main",
-            "main:"  
+        # emit prologue
+        mips_lines = [
+            '.data',
+            '  x: .space 400',
+            '.text',
+            '.globl main',
+            'main:'
         ]
 
-        # translate
-        for label, tac_instruc in instrs:
-            code.append(f"{label_map[label]}:")
-            code.extend(self.emit_instruction(tac_instruc, label_map))
+        # translate each TAC instruction
+        for index, instruction_text in numbered_instructions:
+            mips_lines.append(f"{label_map[index]}:")
+            mips_lines.extend(self._translate_instruction(instruction_text, label_map))
 
-        # epilogue
-        code.append("  jr $ra")
-        return "\n".join(code)
+        # emit epilogue
+        mips_lines.append('  jr $ra')
+        return '\n'.join(mips_lines)
 
-    def emit_instruction(self, tac_instruc, label_map):
-        out = []
+    def _translate_instruction(self, instruction_text, label_map):
+        mips_lines = []
         # return
-        if tac_instruc == 'return':
-            return ["  jr $ra"]
+        if instruction_text == 'return':
+            return ['  jr $ra']
 
         # conditional branch
-        if tac_instruc.startswith('if '):
-            match = re.match(
-                r"if\s+(\w+)\s*(<=|>=|==|!=|<|>)\s*(\w+)\s*then\s*goto\s*\(?([0-9]+)\)?",
-                tac_instruc
-            )
+        if instruction_text.startswith('if '):
+            match = re.match(r'if\s+(\w+)\s*(<=|>=|==|!=|<|>)\s*(\w+)\s*then\s*goto\s*(\d+)', instruction_text)
             if match:
-                a, op, b, tgt = match.groups()
-                ra, rb = self.get_reg(a), self.get_reg(b)
-                label = label_map[tgt]
-                op_map = {'<=':'ble','>=':'bge','==':'beq','!=':'bne','<':'blt','>':'bgt'}
-                out.append(f"  {op_map[op]} {ra}, {rb}, {label}")
-                return out
+                operand1, operator, operand2, target = match.groups()
+                reg1 = self.get_register(operand1)
+                reg2 = self.get_register(operand2)
+                target_label = label_map[int(target)]
+                branch_map = {'<=':'ble','>=':'bge','==':'beq','!=':'bne','<':'blt','>':'bgt'}
+                mips_lines.append(f"  {branch_map[operator]} {reg1}, {reg2}, {target_label}")
+                return mips_lines
 
         # unconditional jump
-        if tac_instruc.startswith('goto'):
-            match = re.match(r"goto\s*\(?([0-9]+)\)?", tac_instruc)
+        if instruction_text.startswith('goto '):
+            match = re.match(r'goto\s*(\d+)', instruction_text)
             if match:
-                out.append(f"  j {label_map[match.group(1)]}")
-            return out
+                target = int(match.group(1))
+                mips_lines.append(f"  j {label_map[target]}")
+            return mips_lines
 
-        # load/store
-        if '=' in tac_instruc:
-            # array load: dst = arr[idx]
-            # m# vars stores the result of re.match
-            m1 = re.match(r"(\w+)\s*=\s*(\w+)\[(\w+)\]", tac_instruc)
-            if m1:
-                dst, arr, idx = m1.groups()
-                out.append(f"  add $at, {self.get_reg(arr)}, {self.get_reg(idx)}")
-                out.append(f"  lw {self.get_reg(dst)}, 0($at)")
-                return out
+        # assignment, arithmetic, arrays
+        if '=' in instruction_text:
+            # array load: dest = arr[index]
+            load_match = re.match(r'(\w+)\s*=\s*(\w+)\[(\w+)\]', instruction_text)
+            if load_match:
+                dest, array, index_symbol = load_match.groups()
+                mips_lines.append(f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
+                mips_lines.append(f"  lw {self.get_register(dest)}, 0($at)")
+                return mips_lines
 
-            # array store: arr[idx] = source
-            m2 = re.match(r"(\w+)\[(\w+)\]\s*=\s*(\w+)", tac_instruc)
-            if m2:
-                arr, idx, source = m2.groups()
-                out.append(f"  add $at, {self.get_reg(arr)}, {self.get_reg(idx)}")
-                out.append(f"  sw {self.get_reg(source)}, 0($at)")
-                return out
+            # array store: arr[index] = source
+            store_match = re.match(r'(\w+)\[(\w+)\]\s*=\s*(\w+)', instruction_text)
+            if store_match:
+                array, index_symbol, source = store_match.groups()
+                mips_lines.append(f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
+                mips_lines.append(f"  sw {self.get_register(source)}, 0($at)")
+                return mips_lines
 
             # simple copy or binary op
-            lhs, rhs = [s.strip() for s in tac_instruc.split('=',1)]
-            toks = rhs.split()
-
-            # copy: lhs = rhs
-            if len(toks) == 1:
-                source = toks[0]
-                destination_register = self.get_reg(lhs)
+            left_side, right_side = [s.strip() for s in instruction_text.split('=', 1)]
+            tokens = right_side.split()
+            # copy: left = right
+            if len(tokens) == 1:
+                source = tokens[0]
+                dest_reg = self.get_register(left_side)
                 if source.isdigit():
-                    out.append(f"  li {destination_register}, {source}")
+                    mips_lines.append(f"  li {dest_reg}, {source}")
                 else:
-                    out.append(f"  move {destination_register}, {self.get_reg(source)}")
-                return out
+                    mips_lines.append(f"  move {dest_reg}, {self.get_register(source)}")
+                return mips_lines
 
-            # binary operation: lhs = op1 op op2
-            if len(toks) == 3:
-                op1, op, op2 = toks
-                destination_register = self.get_reg(lhs)
-                r1 = self.get_reg(op1)
-
+            # binary operation: left = op1 operator op2
+            if len(tokens) == 3:
+                operand1, operator, operand2 = tokens
+                dest_reg = self.get_register(left_side)
+                reg1 = self.get_register(operand1)
                 # immediate add/sub
-                if op2.isdigit() and op in ['+','-']:
-                    imm = op2 if op == '+' else f"-{op2}"
-                    out.append(f"  addi {destination_register}, {r1}, {imm}")
+                if operand2.isdigit() and operator in ['+','-']:
+                    immediate = operand2 if operator == '+' else f'-{operand2}'
+                    mips_lines.append(f"  addi {dest_reg}, {reg1}, {immediate}")
                 else:
-                    # load op2 into register or $at
-                    if op2.isdigit():
-                        out.append(f"  li $at, {op2}")
-                        r2 = '$at'
+                    if operand2.isdigit():
+                        mips_lines.append(f"  li $at, {operand2}")
+                        reg2 = '$at'
                     else:
-                        r2 = self.get_reg(op2)
+                        reg2 = self.get_register(operand2)
+                    if operator == '+':      mips_lines.append(f"  add {dest_reg}, {reg1}, {reg2}")
+                    elif operator == '-':    mips_lines.append(f"  sub {dest_reg}, {reg1}, {reg2}")
+                    elif operator == '*':    mips_lines.append(f"  mul {dest_reg}, {reg1}, {reg2}")
+                    elif operator == '/':    
+                        mips_lines.append(f"  div {reg1}, {reg2}")
+                        mips_lines.append(f"  mflo {dest_reg}")
+                return mips_lines
 
-                    # emit binary instruction
-                    if op == '+':      out.append(f"  add {destination_register}, {r1}, {r2}")
-                    elif op == '-':    out.append(f"  sub {destination_register}, {r1}, {r2}")
-                    elif op == '*':    out.append(f"  mul {destination_register}, {r1}, {r2}")
-                    elif op == '/':    
-                        out.append(f"  div {r1}, {r2}")
-                        out.append(f"  mflo {destination_register}")
-
-                return out
-
-        return out
+        return mips_lines
