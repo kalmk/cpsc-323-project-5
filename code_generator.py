@@ -1,15 +1,16 @@
 # Importing regex module's re.match function
 import re
 
+
 class CodeGenerator:
     def __init__(self):
         # map symbol names to MIPS registers
         self.register_map = {}
         # reserve $s0 for array base 'x', then general-purpose registers
         self.register_pool = [
-            '$t0','$t1','$t2','$t3','$t4','$t5','$t6','$t7','$t8','$t9',
-            '$s1','$s2','$s3','$s4','$s5','$s6','$s7',
-            '$a0','$a1','$a2','$a3','$v0','$v1'
+            '$t0', '$t1', '$t2', '$t3', '$t4', '$t5', '$t6', '$t7', '$t8', '$t9',
+            '$s1', '$s2', '$s3', '$s4', '$s5', '$s6', '$s7',
+            '$a0', '$a1', '$a2', '$a3', '$v0', '$v1'
         ]
         self.next_register = 0
 
@@ -45,7 +46,8 @@ class CodeGenerator:
         # translate each TAC instruction
         for index, instruction_text in numbered_instructions:
             mips_lines.append(f"{label_map[index]}:")
-            mips_lines.extend(self._translate_instruction(instruction_text, label_map))
+            mips_lines.extend(self._translate_instruction(
+                instruction_text, label_map))
 
         # emit epilogue
         mips_lines.append('  jr $ra')
@@ -59,14 +61,17 @@ class CodeGenerator:
 
         # conditional branch
         if instruction_text.startswith('if '):
-            match = re.match(r'if\s+(\w+)\s*(<=|>=|==|!=|<|>)\s*(\w+)\s*then\s*goto\s*(\d+)', instruction_text)
+            match = re.match(
+                r'if\s+(\w+)\s*(<=|>=|==|!=|<|>)\s*(\w+)\s*then\s*goto\s*(\d+)', instruction_text)
             if match:
                 operand1, operator, operand2, target = match.groups()
                 reg1 = self.get_register(operand1)
                 reg2 = self.get_register(operand2)
                 target_label = label_map[int(target)]
-                branch_map = {'<=':'ble','>=':'bge','==':'beq','!=':'bne','<':'blt','>':'bgt'}
-                mips_lines.append(f"  {branch_map[operator]} {reg1}, {reg2}, {target_label}")
+                branch_map = {'<=': 'ble', '>=': 'bge',
+                              '==': 'beq', '!=': 'bne', '<': 'blt', '>': 'bgt'}
+                mips_lines.append(
+                    f"  {branch_map[operator]} {reg1}, {reg2}, {target_label}")
                 return mips_lines
 
         # unconditional jump
@@ -80,23 +85,28 @@ class CodeGenerator:
         # assignment, arithmetic, arrays
         if '=' in instruction_text:
             # array load: dest = arr[index]
-            load_match = re.match(r'(\w+)\s*=\s*(\w+)\[(\w+)\]', instruction_text)
+            load_match = re.match(
+                r'(\w+)\s*=\s*(\w+)\[(\w+)\]', instruction_text)
             if load_match:
                 dest, array, index_symbol = load_match.groups()
-                mips_lines.append(f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
+                mips_lines.append(
+                    f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
                 mips_lines.append(f"  lw {self.get_register(dest)}, 0($at)")
                 return mips_lines
 
             # array store: arr[index] = source
-            store_match = re.match(r'(\w+)\[(\w+)\]\s*=\s*(\w+)', instruction_text)
+            store_match = re.match(
+                r'(\w+)\[(\w+)\]\s*=\s*(\w+)', instruction_text)
             if store_match:
                 array, index_symbol, source = store_match.groups()
-                mips_lines.append(f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
+                mips_lines.append(
+                    f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
                 mips_lines.append(f"  sw {self.get_register(source)}, 0($at)")
                 return mips_lines
 
             # simple copy or binary op
-            left_side, right_side = [s.strip() for s in instruction_text.split('=', 1)]
+            left_side, right_side = [s.strip()
+                                     for s in instruction_text.split('=', 1)]
             tokens = right_side.split()
             # copy: left = right
             if len(tokens) == 1:
@@ -105,7 +115,8 @@ class CodeGenerator:
                 if source.isdigit():
                     mips_lines.append(f"  li {dest_reg}, {source}")
                 else:
-                    mips_lines.append(f"  move {dest_reg}, {self.get_register(source)}")
+                    mips_lines.append(
+                        f"  move {dest_reg}, {self.get_register(source)}")
                 return mips_lines
 
             # binary operation: left = op1 operator op2
@@ -114,7 +125,7 @@ class CodeGenerator:
                 dest_reg = self.get_register(left_side)
                 reg1 = self.get_register(operand1)
                 # immediate add/sub
-                if operand2.isdigit() and operator in ['+','-']:
+                if operand2.isdigit() and operator in ['+', '-']:
                     immediate = operand2 if operator == '+' else f'-{operand2}'
                     mips_lines.append(f"  addi {dest_reg}, {reg1}, {immediate}")
                 else:
@@ -123,10 +134,13 @@ class CodeGenerator:
                         reg2 = '$at'
                     else:
                         reg2 = self.get_register(operand2)
-                    if operator == '+':      mips_lines.append(f"  add {dest_reg}, {reg1}, {reg2}")
-                    elif operator == '-':    mips_lines.append(f"  sub {dest_reg}, {reg1}, {reg2}")
-                    elif operator == '*':    mips_lines.append(f"  mul {dest_reg}, {reg1}, {reg2}")
-                    elif operator == '/':    
+                    if operator == '+':
+                        mips_lines.append(f"  add {dest_reg}, {reg1}, {reg2}")
+                    elif operator == '-':
+                        mips_lines.append(f"  sub {dest_reg}, {reg1}, {reg2}")
+                    elif operator == '*':
+                        mips_lines.append(f"  mul {dest_reg}, {reg1}, {reg2}")
+                    elif operator == '/':
                         mips_lines.append(f"  div {reg1}, {reg2}")
                         mips_lines.append(f"  mflo {dest_reg}")
                 return mips_lines
