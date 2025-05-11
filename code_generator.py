@@ -52,14 +52,14 @@ class CodeGenerator:
         # translate each TAC instruction
         for index, instruction_text in numbered_instructions:
             mips_lines.append(f"{label_map[index]}:")
-            mips_lines.extend(self._translate_instruction(
+            mips_lines.extend(self.translate_instruction(
                 instruction_text, label_map))
 
         # emit epilogue
         mips_lines.append('  jr $ra')
         return '\n'.join(mips_lines)
 
-    def _translate_instruction(self, instruction_text, label_map):
+    def translate_instruction(self, instruction_text, label_map):
         mips_lines = []
         # return
         if instruction_text == 'return':
