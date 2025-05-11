@@ -1,9 +1,11 @@
-This program takes lightly optimized TAC instructions and converts them to a MIPS .asm file
+# Code Generation
+ 
+Requirements to run the program:
+- Python
 
-Note that test cases are hard coded in main.py under the "input_path" variable. Replace the value of this variable in order to run other test cases. It will run with "test_cases/testCase1.txt" by default. 
+Note that test cases are hard coded in main.py under the "input_path" variable. Replace the value of this variable in order to run other test cases. 
 
-This program assumes that you have access to a linux command terminal with the latest version of Python. 
+To run in Linux: 
+- python3 main.py
+- ./r.sh
 
-To run:
-
-python main.py
