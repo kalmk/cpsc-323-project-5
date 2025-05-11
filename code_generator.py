@@ -1,5 +1,4 @@
-# Importing regex module's re.match function
-import re
+import re  # re.match
 
 
 class CodeGenerator:
@@ -23,6 +22,7 @@ class CodeGenerator:
         # immediate constants stay as literals
         if symbol.isdigit():
             return symbol
+
         # allocate a register if first seen
         if symbol not in self.register_map:
             if symbol == 'x':
@@ -37,6 +37,7 @@ class CodeGenerator:
     def generate(self, tac_lines_list):
         # tac_lines_list is a Python list of TAC instructions in order
         numbered_instructions = list(enumerate(tac_lines_list, start=1))
+
         label_map = {index: f'L{index}' for index, _ in numbered_instructions}
 
         # emit prologue
@@ -57,10 +58,12 @@ class CodeGenerator:
 
         # emit epilogue
         mips_lines.append('  jr $ra')
+
         return '\n'.join(mips_lines)
 
     def translate_instruction(self, instruction_text, label_map):
         mips_lines = []
+
         # return
         if instruction_text == 'return':
             return ['  jr $ra']
@@ -69,6 +72,7 @@ class CodeGenerator:
         if instruction_text.startswith('if '):
             match = re.match(
                 r'if\s+(\w+)\s*(<=|>=|==|!=|<|>)\s*(\w+)\s*then\s*goto\s*(\d+)', instruction_text)
+
             if match:
                 operand1, operator, operand2, target = match.groups()
                 reg1 = self.get_register(operand1)
@@ -76,8 +80,10 @@ class CodeGenerator:
                 target_label = label_map[int(target)]
                 branch_map = {'<=': 'ble', '>=': 'bge',
                               '==': 'beq', '!=': 'bne', '<': 'blt', '>': 'bgt'}
+
                 mips_lines.append(
                     f"  {branch_map[operator]} {reg1}, {reg2}, {target_label}")
+
                 return mips_lines
 
         # unconditional jump
@@ -86,6 +92,7 @@ class CodeGenerator:
             if match:
                 target = int(match.group(1))
                 mips_lines.append(f"  j {label_map[target]}")
+
             return mips_lines
 
         # assignment, arithmetic, arrays
@@ -98,6 +105,7 @@ class CodeGenerator:
                 mips_lines.append(
                     f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
                 mips_lines.append(f"  lw {self.get_register(dest)}, 0($at)")
+
                 return mips_lines
 
             # array store: arr[index] = source
@@ -108,12 +116,14 @@ class CodeGenerator:
                 mips_lines.append(
                     f"  add $at, {self.get_register(array)}, {self.get_register(index_symbol)}")
                 mips_lines.append(f"  sw {self.get_register(source)}, 0($at)")
+
                 return mips_lines
 
             # simple copy or binary op
             left_side, right_side = [s.strip()
                                      for s in instruction_text.split('=', 1)]
             tokens = right_side.split()
+
             # copy: left = right
             if len(tokens) == 1:
                 source = tokens[0]
@@ -123,6 +133,7 @@ class CodeGenerator:
                 else:
                     mips_lines.append(
                         f"  move {dest_reg}, {self.get_register(source)}")
+
                 return mips_lines
 
             # binary operation: left = op1 operator op2
@@ -130,6 +141,7 @@ class CodeGenerator:
                 operand1, operator, operand2 = tokens
                 dest_reg = self.get_register(left_side)
                 reg1 = self.get_register(operand1)
+
                 # immediate add/sub
                 if operand2.isdigit() and operator in ['+', '-']:
                     immediate = operand2 if operator == '+' else f'-{operand2}'

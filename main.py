@@ -16,16 +16,11 @@ def main():
     with open(input_path) as f:
         tac = [line.strip() for line in f if line.strip()]
 
-    # print(f"TAC: {tac}")
-
     cg = CodeGenerator()
     asm = cg.generate(tac)
-    # print(f"{cg}")
 
-    # Write the generated MIPS to output
     with open(output_path, 'w') as out:
         out.write(asm)
-
     print("MIPS assembly written. Check the files.")
 
 
