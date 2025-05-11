@@ -14,6 +14,11 @@ class CodeGenerator:
         ]
         self.next_register = 0
 
+    def __str__(self):
+        return (
+            f"register_map: {self.register_map}\n"
+        )
+
     def get_register(self, symbol):
         # immediate constants stay as literals
         if symbol.isdigit():
@@ -38,6 +43,7 @@ class CodeGenerator:
         mips_lines = [
             '.data',
             '  x: .space 400',
+            '  a: .space 400',
             '.text',
             '.globl main',
             'main:'

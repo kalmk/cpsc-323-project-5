@@ -13,12 +13,14 @@ def main():
     else:
         output_path = "output.asm"
 
-    # Read TAC instructions from external file
     with open(input_path) as f:
         tac = [line.strip() for line in f if line.strip()]
 
+    # print(f"TAC: {tac}")
+
     cg = CodeGenerator()
     asm = cg.generate(tac)
+    # print(f"{cg}")
 
     # Write the generated MIPS to output
     with open(output_path, 'w') as out:
