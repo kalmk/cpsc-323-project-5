@@ -1,7 +1,7 @@
 from code_generator import CodeGenerator
 
 def main():
-    input_path = "test_cases/testCase1.txt"
+    input_path = "test_cases/testCase2.txt"
     output_path = "output.asm"
     # Read TAC instructions from external file 'testCase1.txt'
     with open(input_path) as f:
